@@ -109,5 +109,61 @@ if [[ $server_role == "webserver-a" ]] || [[ $server_role == "webserver-b" ]] ; 
 </html>
 EOF
 elif [[ $server_role == "proxy" ]] ; then
-  echo "Have not figured out proxy code yet"
+  # Construct the backends text from a list of servers/IPs passed into a BACKENDS env var set by the user
+  # Making some healthy assumptions here with this piece and would be a prime candidate for changes with a config management system
+  if [ -z "$BACKENDS" ] ; then
+    echo "No backends passed in for proxy server role"
+    exit 1
+  fi
+  backend_text=""
+  for s in $BACKENDS ; do
+    backend_text="${backend_text}        server $s;\n"
+  done
+
+  sudo tee /etc/nginx/nginx.conf <<EOF
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+    sendfile        on;
+    keepalive_timeout  65;
+
+    upstream backend {
+        # `ip_hash` gives 2 clear advantages over typical round robin:
+        # * Effectively gives "sticky" sessions by tying a request to a specific backend based upon IP
+        # * Will fail to another server if one of them is not available for any reason
+        # These qualities are intentionally chosen for this specific script due to other considerations related
+        # to the interview project this script was created for
+        ip_hash;
+        # Not setting the `fail_timeout` or `max_fails` settings on the servers, operating with defaults
+        # Could be something that needs to be tweaked though if default health checking not to satisfaction
+        # If seeing overwhelming of server, add `slow_start` setting to backends to give them time to warm up
+${backend_text}
+    }
+
+    server {
+        # Prompt is to receive on 60k-65k port and send to 80 on backends
+        listen       60000-65000;
+        server_name  localhost;
+        location / {
+            # Want to pass through the IP address for logging, etc
+            proxy_set_header X-Real_IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            real_ip_header X-Real-IP;
+
+            proxy_set_header Host $http_host;
+            proxy_pass http://backend
+        }
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+}
+EOF
 fi
