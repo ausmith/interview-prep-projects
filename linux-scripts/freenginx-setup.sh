@@ -117,7 +117,7 @@ elif [[ $server_role == "proxy" ]] ; then
   fi
   backend_text=""
   for s in $BACKENDS ; do
-    backend_text="${backend_text}        server $s;\n"
+    backend_text+="        server $s;"$'\n'
   done
 
   sudo tee /etc/nginx/nginx.conf <<EOF
