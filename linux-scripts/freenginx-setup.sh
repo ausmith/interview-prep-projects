@@ -117,6 +117,7 @@ elif [[ $server_role == "proxy" ]] ; then
   fi
   backend_text=""
   for s in $BACKENDS ; do
+    # https://stackoverflow.com/questions/28090477/n-in-variable-in-heredoc is how I learned about the `$'/n'` behavior
     backend_text+="        server $s;"$'\n'
   done
 
@@ -134,15 +135,15 @@ http {
     keepalive_timeout  65;
 
     upstream backend {
-        # `ip_hash` gives 2 clear advantages over typical round robin:
+        # 'ip_hash' gives 2 clear advantages over typical round robin:
         # * Effectively gives "sticky" sessions by tying a request to a specific backend based upon IP
         # * Will fail to another server if one of them is not available for any reason
         # These qualities are intentionally chosen for this specific script due to other considerations related
         # to the interview project this script was created for
         ip_hash;
-        # Not setting the `fail_timeout` or `max_fails` settings on the servers, operating with defaults
+        # Not setting the 'fail_timeout' or 'max_fails' settings on the servers, operating with defaults
         # Could be something that needs to be tweaked though if default health checking not to satisfaction
-        # If seeing overwhelming of server, add `slow_start` setting to backends to give them time to warm up
+        # If seeing overwhelming of server, add 'slow_start' setting to backends to give them time to warm up
 ${backend_text}
     }
 
@@ -152,12 +153,11 @@ ${backend_text}
         server_name  localhost;
         location / {
             # Want to pass through the IP address for logging, etc
-            proxy_set_header X-Real_IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            real_ip_header X-Real-IP;
+            proxy_set_header X-Real_IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
 
-            proxy_set_header Host $http_host;
-            proxy_pass http://backend
+            proxy_set_header Host \$http_host;
+            proxy_pass http://backend;
         }
         error_page   500 502 503 504  /50x.html;
         location = /50x.html {
