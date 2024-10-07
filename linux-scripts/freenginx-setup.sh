@@ -123,7 +123,7 @@ elif [[ $server_role == "proxy" ]] ; then
   done
 
   sudo tee /etc/nginx/nginx.conf <<EOF
-worker_processes  1;
+worker_processes      1;
 worker_rlimit_nofile  10000;
 
 events {
@@ -131,9 +131,9 @@ events {
 }
 
 http {
-    include       mime.types;
-    default_type  application/octet-stream;
-    sendfile        on;
+    include            mime.types;
+    default_type       application/octet-stream;
+    sendfile           on;
     keepalive_timeout  65;
 
     upstream backend {
