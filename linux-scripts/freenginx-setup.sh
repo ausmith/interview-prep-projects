@@ -149,6 +149,11 @@ http {
     }
 }
 EOF
+
+  # Force reload of config now that nginx.conf has been set
+  sudo systemctl reload nginx
+  # Now show the status in case there are failure logs to present (they show in status)
+  sudo systemctl status nginx
 elif [[ $server_role == "proxy" ]] ; then
   # Construct the backends text from a list of servers/IPs passed into a BACKENDS env var set by the user
   # Making some healthy assumptions here with this piece and would be a prime candidate for changes with a config management system
