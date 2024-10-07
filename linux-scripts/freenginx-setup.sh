@@ -70,6 +70,7 @@ After=syslog.target network-online.target remote-fs.target nss-lookup.target
 Wants=network-online.target
 
 [Service]
+LimitNOFILE=10000
 Type=forking
 PIDFile=/var/run/nginx.pid
 ExecStartPre=/usr/sbin/nginx -t
@@ -123,9 +124,10 @@ elif [[ $server_role == "proxy" ]] ; then
 
   sudo tee /etc/nginx/nginx.conf <<EOF
 worker_processes  1;
+worker_rlimit_nofile  10000;
 
 events {
-    worker_connections  1024;
+    worker_connections  10000;
 }
 
 http {
@@ -166,4 +168,9 @@ ${backend_text}
     }
 }
 EOF
+
+  # Force reload of config now that nginx.conf has been set
+  sudo systemctl reload nginx
+  # Now show the status in case there are failure logs to present (they show in status)
+  sudo systemctl status nginx
 fi
