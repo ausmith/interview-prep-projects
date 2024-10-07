@@ -96,6 +96,7 @@ if [[ $server_role == "webserver-a" ]] || [[ $server_role == "webserver-b" ]] ; 
   elif [[ $server_role == "webserver-b" ]] ; then
     body="b"
   else
+    # Should not ever hit this due to starting conditional for this section
     body="Neither webserver-a or webserver-b..."
   fi
   sudo tee /var/www/html/html/index.html <<EOF
@@ -108,6 +109,45 @@ if [[ $server_role == "webserver-a" ]] || [[ $server_role == "webserver-b" ]] ; 
 <p>${body}</p>
 </body>
 </html>
+EOF
+
+  # Set nginx.conf from default specifically for access log entries having client IPs
+  sudo tee /etc/nginx/nginx.conf <<EOF
+worker_processes  1;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       mime.types;
+    default_type  application/octet-stream;
+
+    log_format combined_realip '$http_x_forwarded_for - $remote_user [$time_local] '
+                    '"$request" $status $body_bytes_sent "$http_referrer" '
+                    '"$http_user_agent"';
+
+    access_log  /var/log/nginx/access.log  combined_realip;
+
+    sendfile           on;
+    keepalive_timeout  65;
+
+    server {
+        listen       80;
+        server_name  localhost;
+
+        location / {
+            root   html;
+            index  index.html index.htm;
+        }
+
+        # redirect server error pages to the static page /50x.html
+        error_page   500 502 503 504  /50x.html;
+        location = /50x.html {
+            root   html;
+        }
+    }
+}
 EOF
 elif [[ $server_role == "proxy" ]] ; then
   # Construct the backends text from a list of servers/IPs passed into a BACKENDS env var set by the user
