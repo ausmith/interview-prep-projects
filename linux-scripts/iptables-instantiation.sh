@@ -1,11 +1,44 @@
 #!/usr/bin/env bash
 
+if [ -z "$1" ] ; then
+  echo "No role (proxy|webserver-a|webserver-b) provided"
+  exit 1
+fi
+server_role=$1
+if [[ "$server_role" =~ (proxy|webserver-a|webserver-b|bastion) ]] ; then
+  echo "Setting up iptables for role: ${server_role}"
+else
+  echo "Did not receive an expected role (proxy|webserver-a|webserver-b|bastion), bailing"
+  exit 1
+fi
+
 # Ensure connection tracking is enabled for established and related connections
 conntrack_rule='-A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT'
+
 # Necessary for things like `sudo $COMMAND` resolving the hostname
 lo_input_accept_rule='-A INPUT -i lo -j ACCEPT'
-# Allow SSH inbound, will likely need to tweak this depending on server type later or have separate script do that
-ssh_rule='-A INPUT -p tcp -m tcp --dport 22 -j ACCEPT'
+
+# Allow SSH inbound from appropriate source depending on server role
+if [[ "$server_role" = "bastion" ]] ; then
+  # Everywhere!
+  ssh_rule='-A INPUT -p tcp -m tcp --dport 22 -j ACCEPT'
+else
+  # Only from local network
+  ssh_rule='-A INPUT -s 172.16.0.0/12 -p tcp -m tcp --dport 22 -j ACCEPT'
+fi
+
+# Allow port 80 inbound on local network if one of the webservers
+webserver_rule=''
+if [[ "$server_role" =~ (webserver-a|webserver-b) ]] ; then
+  webserver_rule='-A INPUT -s 172.16.0.0/12 -p tcp -m tcp --dport 80 -j ACCEPT'
+fi
+
+# Allow ports 60k-65k inbound from anywhere if proxy role
+proxy_rule=''
+if [[ "$server_role" = "proxy" ]] ; then
+  proxy_rule='-A INPUT -p tcp -m tcp --dport 60000:65000 -j ACCEPT'
+fi
+
 # Finally drop all other inputs, allowing additional rules to open pinholes
 drop_rule='-P INPUT DROP'
 
@@ -40,6 +73,12 @@ function write_rule_if_not_present() {
 write_rule_if_not_present "$conntrack_rule"
 write_rule_if_not_present "$lo_input_accept_rule"
 write_rule_if_not_present "$ssh_rule"
+if [ ! -z "$webserver_rule" ] ; then
+  write_rule_if_not_present "$webserver_rule"
+fi
+if [ ! -z "$proxy_rule" ] ; then
+  write_rule_if_not_present "$proxy_rule"
+fi
 
 # Drop rule is extra scary AND has a different search parameter
 current_rules=$(sudo iptables-save)
