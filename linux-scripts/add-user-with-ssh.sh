@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 if [ -z "$1" ] ; then
   echo "Must provide username in first parameter"
   exit 1

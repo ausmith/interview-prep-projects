@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -euo pipefail
+
 if [ -z "$1" ] ; then
   echo "No role (proxy|webserver-a|webserver-b) provided"
   exit 1
