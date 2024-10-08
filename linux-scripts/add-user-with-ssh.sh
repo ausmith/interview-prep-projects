@@ -40,6 +40,15 @@ if sudo -l -U "$username" | grep "User ${username} is not allowed to run sudo on
   sudo usermod -aG sudo "$username"
 fi
 
+# Ensure user is not prompted for password on sudo commands
+if sudo test ! -f "/etc/sudoers.d/${username}" ; then
+  echo "Removing need for sudo password prompts for ${username}"
+  sudo tee "/etc/sudoers.d/${username}" <<EOF
+${username} ALL=(ALL) NOPASSWD:ALL
+EOF
+  sudo chmod 0440 "/etc/sudoers.d/${username}"
+fi
+
 # Make sure .ssh directory exists for user so we can set authorized_keys content later
 user_homedir="/home/${username}"
 if [ ! -d "${user_homedir}/.ssh" ] ; then
