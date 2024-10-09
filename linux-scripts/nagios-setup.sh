@@ -37,7 +37,7 @@ function fetch_and_unpack_tarball() {
   local name="$1"
   local github_path="$2"
   local version="$3"
-  local url_prefix="https://githubcom/${github_path}-${version}"
+  local url_prefix="https://github.com/${github_path}-${version}"
   local tarball="${name}-${version}.tar.gz"
 
   # Clean up previous downloads and unpacks for safety
