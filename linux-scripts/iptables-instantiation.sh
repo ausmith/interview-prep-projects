@@ -3,7 +3,7 @@
 set -euo pipefail
 
 if [ -z "$1" ] ; then
-  echo "No role (proxy|webserver-a|webserver-b) provided"
+  echo "No role (proxy|webserver-a|webserver-b|bastion) provided"
   exit 1
 fi
 server_role=$1
@@ -39,6 +39,12 @@ fi
 proxy_rule=''
 if [[ "$server_role" = "proxy" ]] ; then
   proxy_rule='-A INPUT -p tcp -m tcp --dport 60000:65000 -j ACCEPT'
+fi
+
+# Allow 5666 local for nagios NRPE checks
+nrpe_rule=''
+if [[ "$server_role" =~ (proxy|webserver-a|webserver-b) ]] ; then
+  nrpe_rule='-A INPUT -s 172.16.0.0/12 -p tcp -m tcp --dport 5666 -j ACCEPT'
 fi
 
 # Finally drop all other inputs, allowing additional rules to open pinholes
@@ -80,6 +86,9 @@ if [ ! -z "$webserver_rule" ] ; then
 fi
 if [ ! -z "$proxy_rule" ] ; then
   write_rule_if_not_present "$proxy_rule"
+fi
+if [ ! -z "$nrpe_rule" ] ; then
+  write_rule_if_not_present "$nrpe_rule"
 fi
 
 # Drop rule is extra scary AND has a different search parameter
