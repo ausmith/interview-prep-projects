@@ -157,6 +157,9 @@ if [[ "$server_role" =~ (proxy|webserver-a|webserver-b) ]] && ! sudo systemctl s
 
   # Ensure xinetd will receive traffic from the nagios server passed into the script
   sudo sed -i "s/only_from       = 127.0.0.1 ::1$/only_from       = 127.0.0.1 ::1 $nagios_server/" /etc/xinetd.d/nrpe
+  # Ensure nrpe.cfg will receive traffic from the nagios server passed into the script
+  sudo sed -i "s/^allowed_hosts=127.0.0.1,::1$/allowed_hosts=127.0.0.1,::1,$nagios_server/" /usr/local/nagios/etc/nrpe.cfg
+  sudo sed -i 's/^dont_blame_nrpe=.*/dont_blame_nrpe=1/g' /usr/local/nagios/etc/nrpe.cfg
 
   # Complete installation with a reload and starting of nrpe
   sudo systemctl reload xinetd
