@@ -120,9 +120,9 @@ if [[ "$server_role" == "bastion" ]] && [ ! -f /usr/local/nagios/libexec/check_n
   fetch_and_unpack_tarball "nrpe" "NagiosEnterprises/nrpe/releases/download/nrpe" "$nrpe_version"
 
   pushd "/tmp/nrpe-${nrpe_version}"
-  ./configure
-  make check_nrpe
-  make install-plugin
+  sudo ./configure
+  sudo make check_nrpe
+  sudo make install-plugin
   popd # return to directory user was operating in before
 fi
 
