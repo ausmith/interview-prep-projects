@@ -125,9 +125,8 @@ http {
     include       mime.types;
     default_type  application/octet-stream;
 
-    log_format combined_realip '\$http_x_forwarded_for - \$remote_user [\$time_local] '
-                    '"\$request" \$status \$body_bytes_sent "\$http_referrer" '
-                    '"\$http_user_agent"';
+    log_format combined_realip '\$remote_addr - \$http_x_forwarded_for - \$remote_user [\$time_local] '
+                    '"\$request" \$status \$body_bytes_sent "\$http_referrer" "\$http_user_agent"';
 
     access_log  /var/log/nginx/access.log  combined_realip;
 
